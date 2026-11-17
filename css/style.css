@@ -105,3 +105,49 @@ body.dark{--accent-gradient:linear-gradient(112deg,#a49bff 0%,#c38df4 54%,#ff9bc
 .button-primary,.brand-mark{background:var(--accent-gradient);border-color:transparent}
 .portrait-card{background:linear-gradient(145deg,#d5d3ff 0%,#aaa0f2 42%,#cf91d2 72%,#f0a5bb 100%)}
 .hero-light{background:radial-gradient(ellipse 40% 44% at var(--light-x,50%) var(--light-y,48%),rgba(127,112,255,.52) 0%,rgba(166,104,235,.3) 30%,rgba(238,115,180,.16) 56%,transparent 76%),radial-gradient(ellipse 30% 34% at 50% 52%,rgba(112,175,255,.16),transparent 80%)}
+
+/* One continuous canvas with slow ambient color drift across page sections */
+body{position:relative;isolation:isolate;--ambient-scroll:0}
+body::before{position:fixed;z-index:-1;inset:-16vh -10vw;content:"";pointer-events:none;transform:translate3d(0,calc(var(--ambient-scroll)*-56px),0);background:radial-gradient(ellipse at 12% 14%,rgba(105,91,239,.17),transparent 38%),radial-gradient(ellipse at 84% 25%,rgba(221,101,180,.13),transparent 34%),radial-gradient(ellipse at 57% 86%,rgba(88,160,236,.11),transparent 39%);background-size:150% 150%;background-position:0% 0%;animation:ambient-drift 32s ease-in-out infinite alternate}
+.about-section,.skills-section,.experience-section,.projects-section,.education-section{background:transparent}
+.contact-section{background:transparent;color:var(--ink)}
+.contact-section .eyebrow{color:var(--muted)}
+.contact-section .contact-top>p:not(.eyebrow){color:var(--muted)}
+.contact-email{color:var(--ink);border-bottom-color:var(--line)}
+.contact-email span{color:var(--accent)}
+.contact-bottom{color:var(--muted);border-top-color:var(--line)}
+.social-links a{color:var(--muted)}
+.social-links a:hover{color:var(--accent)}
+.contact-section::before{opacity:.55}
+.footer{background:transparent;border-top:1px solid var(--line)}
+@keyframes ambient-drift{0%{background-position:0% 0%}50%{background-position:60% 25%}100%{background-position:100% 75%}}
+@media(prefers-reduced-motion:reduce){body::before{animation:none!important;transform:none!important}}
+
+/* Shared ambient canvas: tweak these theme colors, blur, and durations to tune the mood. */
+:root{--ambient-violet:rgba(81,70,229,.10);--ambient-rose:rgba(216,95,166,.075);--ambient-blue:rgba(72,144,220,.06);--ambient-blur:72px;--ambient-speed:32s;--ambient-speed-slow:37s;--ambient-speed-fast:29s;--glass-surface:rgba(255,255,255,.82)}
+body.dark{--ambient-violet:rgba(132,111,255,.22);--ambient-rose:rgba(220,103,177,.15);--ambient-blue:rgba(79,154,230,.12);--glass-surface:rgba(25,26,40,.84)}
+body{isolation:isolate;--scroll-progress:0;--parallax-near:0px;--parallax-mid:0px;--parallax-far:0px}
+body::before{content:none}
+.ambient-background{position:fixed;z-index:-1;inset:0;overflow:hidden;pointer-events:none;isolation:isolate;background:var(--bg)}
+.ambient-parallax{position:absolute;inset:-18% -12%;transform:translate3d(0,var(--parallax-near),0)}
+.ambient-parallax--mid{transform:translate3d(0,var(--parallax-mid),0)}
+.ambient-parallax--far{transform:translate3d(0,var(--parallax-far),0)}
+.ambient-blob{position:absolute;display:block;width:min(60vw,780px);aspect-ratio:1;border-radius:50%;filter:blur(var(--ambient-blur));opacity:.9;will-change:transform;animation:ambient-blob-drift var(--ambient-speed) ease-in-out infinite alternate}
+.ambient-blob--violet{left:-10%;top:0;background:radial-gradient(circle,var(--ambient-violet) 0%,transparent 68%)}
+.ambient-blob--rose{right:-3%;top:11%;width:min(50vw,650px);background:radial-gradient(circle,var(--ambient-rose) 0%,transparent 68%);animation-duration:var(--ambient-speed-slow);animation-delay:-11s}
+.ambient-blob--blue{left:25%;bottom:-42%;width:min(54vw,700px);background:radial-gradient(circle,var(--ambient-blue) 0%,transparent 68%);animation-duration:var(--ambient-speed-fast);animation-delay:-17s}
+.ambient-grain{position:absolute;inset:0;opacity:.035;background-image:radial-gradient(rgba(120,120,150,.68) .55px,transparent .8px),radial-gradient(rgba(120,120,150,.45) .45px,transparent .8px);background-size:5px 5px,7px 7px;background-position:0 0,2px 3px}
+.about-section,.skills-section,.experience-section,.projects-section,.education-section,.contact-section,.footer{background:transparent}
+.skill-group,.project-card{background:var(--glass-surface);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-color:color-mix(in srgb,var(--line) 82%,transparent)}
+.scroll-progress{position:fixed;z-index:20;top:0;left:0;width:100%;height:3px;pointer-events:none;background:transparent}
+.scroll-progress span{display:block;width:100%;height:100%;transform:scaleX(0);transform-origin:left center;background:var(--accent-gradient);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 48%,transparent)}
+.nav-links>a{position:relative}
+.nav-links>a::after{position:absolute;right:0;bottom:-7px;left:0;height:1px;content:"";background:var(--accent-gradient);transform:scaleX(0);transform-origin:left;transition:transform .22s ease}
+.nav-links>a:hover::after,.nav-links>a[aria-current=location]::after{transform:scaleX(1)}
+.nav-links>a[aria-current=location]{color:var(--accent)}
+.reveal{--reveal-delay:0ms;transform:translate3d(0,20px,0);transition-delay:var(--reveal-delay)}
+.reveal-from-side{transform:translate3d(18px,8px,0)}
+.reveal.visible{transform:translate3d(0,0,0)}
+@keyframes ambient-blob-drift{0%{transform:translate3d(-2.5%,1.5%,0) scale(.96)}50%{transform:translate3d(1.5%,-2%,0) scale(1.035)}100%{transform:translate3d(3%,2.5%,0) scale(1)}}
+@media(max-width:700px){:root{--ambient-blur:42px;--ambient-speed:38s;--ambient-speed-slow:42s;--ambient-speed-fast:34s}.ambient-blob{opacity:.68;will-change:auto}.ambient-grain{opacity:.02}.skill-group,.project-card{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--surface)}}
+@media(prefers-reduced-motion:reduce){.ambient-blob{animation:none!important;will-change:auto}.ambient-parallax{transform:none!important}.reveal,.reveal-from-side{transform:none!important;transition:none!important}.scroll-progress span{transition:none!important}}

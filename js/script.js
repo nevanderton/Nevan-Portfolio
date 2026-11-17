@@ -19,7 +19,7 @@ navLinks.querySelectorAll('a').forEach((link) => {
 const themeButton = document.querySelector('.theme-toggle');
 const themeIcon = document.querySelector('.theme-icon');
 const savedTheme = localStorage.getItem('nevan-theme');
-if (savedTheme === 'dark') document.body.classList.add('dark');
+document.body.classList.toggle('dark', savedTheme !== 'light');
 updateThemeButton();
 
 themeButton.addEventListener('click', () => {
@@ -32,12 +32,22 @@ function updateThemeButton() {
   const isDark = document.body.classList.contains('dark');
   themeIcon.textContent = isDark ? '☀' : '☾';
   themeButton.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#11121d' : '#f7f8fc');
 }
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
+document.querySelectorAll('.skills-grid .skill-group').forEach((item) => item.classList.add('reveal', 'reveal-child'));
 const revealItems = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const revealOrder = new Map();
+  revealItems.forEach((item) => {
+    const group = item.parentElement;
+    const order = revealOrder.get(group) || 0;
+    revealOrder.set(group, order + 1);
+    item.style.setProperty('--reveal-delay', `${Math.min(order * 90, 360)}ms`);
+    if (order % 3 === 1) item.classList.add('reveal-from-side');
+  });
   const observer = new IntersectionObserver((entries, currentObserver) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -95,4 +105,49 @@ if (portraitArea && finePointer.matches && !motionPreference.matches) {
     portraitArea.style.setProperty('--light-opacity', '0.58');
     portraitArea.classList.remove('is-lit');
   });
+}
+
+// Keep scroll-driven effects in one animation frame and avoid layout writes.
+const progressFill = document.querySelector('.scroll-progress span');
+const ambientMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+const parallaxStrength = { near: 18, mid: 36, far: 10 };
+let scrollFramePending = false;
+const updateScrollEffects = () => {
+  if (scrollFramePending) return;
+  scrollFramePending = true;
+  requestAnimationFrame(() => {
+    const scrollRange = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const progress = Math.max(0, Math.min(1, window.scrollY / scrollRange));
+    document.body.style.setProperty('--scroll-progress', progress.toFixed(3));
+    if (!ambientMotionPreference.matches) {
+      document.body.style.setProperty('--parallax-near', `${(-parallaxStrength.near * progress).toFixed(1)}px`);
+      document.body.style.setProperty('--parallax-mid', `${(-parallaxStrength.mid * progress).toFixed(1)}px`);
+      document.body.style.setProperty('--parallax-far', `${(-parallaxStrength.far * progress).toFixed(1)}px`);
+    }
+    progressFill?.style.setProperty('transform', `scaleX(${progress})`);
+    scrollFramePending = false;
+  });
+};
+window.addEventListener('scroll', updateScrollEffects, { passive: true });
+window.addEventListener('resize', updateScrollEffects, { passive: true });
+updateScrollEffects();
+
+// Mark the section nearest the viewport's reading line in the sticky navigation.
+const sectionLinks = [...document.querySelectorAll('.nav-links a[href^="#"]')];
+const observedSections = sectionLinks
+  .map((link) => ({ link, section: document.querySelector(link.getAttribute('href')) }))
+  .filter(({ section }) => section);
+if ('IntersectionObserver' in window && observedSections.length) {
+  const activeObserver = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    const readingLine = window.innerHeight * 0.38;
+    const activeSection = observedSections.map(({ section }) => section).sort((a, b) =>
+      Math.abs(a.getBoundingClientRect().top - readingLine) - Math.abs(b.getBoundingClientRect().top - readingLine)
+    )[0];
+    observedSections.forEach(({ link, section }) => {
+      if (section === activeSection) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  }, { rootMargin: '-20% 0px -55% 0px', threshold: 0 });
+  observedSections.forEach(({ section }) => activeObserver.observe(section));
 }
