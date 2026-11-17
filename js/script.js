@@ -110,7 +110,8 @@ if (portraitArea && finePointer.matches && !motionPreference.matches) {
 // Keep scroll-driven effects in one animation frame and avoid layout writes.
 const progressFill = document.querySelector('.scroll-progress span');
 const ambientMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
-const parallaxStrength = { near: 18, mid: 36, far: 10 };
+const parallaxStrength = { near: 18, mid: 36, far: 10, lines: 58 };
+const smoothRamp = (value) => value * value * (3 - 2 * value);
 let scrollFramePending = false;
 const updateScrollEffects = () => {
   if (scrollFramePending) return;
@@ -120,9 +121,14 @@ const updateScrollEffects = () => {
     const progress = Math.max(0, Math.min(1, window.scrollY / scrollRange));
     document.body.style.setProperty('--scroll-progress', progress.toFixed(3));
     if (!ambientMotionPreference.matches) {
+      const hue = progress < 0.5
+        ? 212 + 64 * smoothRamp(progress * 2)
+        : 276 - 102 * smoothRamp((progress - 0.5) * 2);
+      document.body.style.setProperty('--scroll-hue', hue.toFixed(1));
       document.body.style.setProperty('--parallax-near', `${(-parallaxStrength.near * progress).toFixed(1)}px`);
       document.body.style.setProperty('--parallax-mid', `${(-parallaxStrength.mid * progress).toFixed(1)}px`);
       document.body.style.setProperty('--parallax-far', `${(-parallaxStrength.far * progress).toFixed(1)}px`);
+      document.body.style.setProperty('--parallax-lines', `${(-parallaxStrength.lines * progress).toFixed(1)}px`);
     }
     progressFill?.style.setProperty('transform', `scaleX(${progress})`);
     scrollFramePending = false;
@@ -131,6 +137,28 @@ const updateScrollEffects = () => {
 window.addEventListener('scroll', updateScrollEffects, { passive: true });
 window.addEventListener('resize', updateScrollEffects, { passive: true });
 updateScrollEffects();
+
+// A softly eased color wash follows a fine pointer on desktop only.
+const ambientCursorGlow = document.querySelector('.ambient-cursor-glow');
+const desktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+if (ambientCursorGlow && desktopPointer.matches && !ambientMotionPreference.matches) {
+  let cursorFramePending = false;
+  let cursorX = window.innerWidth / 2;
+  let cursorY = window.innerHeight / 2;
+  window.addEventListener('pointermove', (event) => {
+    cursorX = event.clientX;
+    cursorY = event.clientY;
+    if (cursorFramePending) return;
+    cursorFramePending = true;
+    requestAnimationFrame(() => {
+      ambientCursorGlow.style.setProperty('--cursor-x', `${cursorX}px`);
+      ambientCursorGlow.style.setProperty('--cursor-y', `${cursorY}px`);
+      ambientCursorGlow.classList.add('is-active');
+      cursorFramePending = false;
+    });
+  }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => ambientCursorGlow.classList.remove('is-active'));
+}
 
 // Mark the section nearest the viewport's reading line in the sticky navigation.
 const sectionLinks = [...document.querySelectorAll('.nav-links a[href^="#"]')];
