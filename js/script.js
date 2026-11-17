@@ -179,3 +179,54 @@ if ('IntersectionObserver' in window && observedSections.length) {
   }, { rootMargin: '-20% 0px -55% 0px', threshold: 0 });
   observedSections.forEach(({ section }) => activeObserver.observe(section));
 }
+
+// Copy email and phone links instead of opening a mail or calling app.
+const copyToast = document.createElement('div');
+copyToast.className = 'copy-toast';
+copyToast.setAttribute('role', 'status');
+copyToast.setAttribute('aria-live', 'polite');
+copyToast.setAttribute('aria-atomic', 'true');
+document.body.append(copyToast);
+let copyToastTimer;
+
+const fallbackCopy = (value) => {
+  const field = document.createElement('textarea');
+  const previousFocus = document.activeElement;
+  field.value = value;
+  field.setAttribute('readonly', '');
+  field.style.cssText = 'position:fixed;inset:auto auto 0 -9999px;opacity:0';
+  document.body.append(field);
+  field.select();
+  const copied = document.execCommand?.('copy') || false;
+  field.remove();
+  previousFocus?.focus?.();
+  return copied;
+};
+
+const copyToClipboard = async (value) => {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      // Use the selection-based fallback when clipboard permission is unavailable.
+    }
+  }
+  return fallbackCopy(value);
+};
+
+document.addEventListener('click', async (event) => {
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  const link = target?.closest('a[href^="mailto:"], a[href^="tel:"]');
+  if (!link) return;
+  event.preventDefault();
+  const href = link.getAttribute('href');
+  const value = decodeURIComponent((href.startsWith('mailto:') ? href.slice(7) : href.slice(4)).split('?')[0]);
+  const copied = await copyToClipboard(value);
+  copyToast.textContent = copied
+    ? (href.startsWith('mailto:') ? 'Email copied' : 'Phone number copied')
+    : 'Could not copy. Please try again.';
+  copyToast.classList.add('is-visible');
+  window.clearTimeout(copyToastTimer);
+  copyToastTimer = window.setTimeout(() => copyToast.classList.remove('is-visible'), 2400);
+});
